@@ -3,12 +3,19 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { User, LogIn, Heart, Map } from "lucide-react"
+import { User, LogIn, Heart, Map, LogOut } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { supabase } from "@/lib/supabase"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function Header() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, signOut, refreshSession } = useAuth()
   const [profileImageUrl, setProfileImageUrl] = useState<string>("")
 
   useEffect(() => {
@@ -28,8 +35,29 @@ export function Header() {
       }
 
       fetchProfileImage()
+    } else {
+      setProfileImageUrl("")
     }
   }, [user])
+
+  // Refresh session periodically to catch auth state changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isLoading) {
+        refreshSession()
+      }
+    }, 30000) // Check every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [isLoading, refreshSession])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -38,7 +66,7 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl md:text-2xl font-bold">Oslo Bathing Spots</span>
           </Link>
-          <div>Loading...</div>
+          <div className="animate-pulse">Loading...</div>
         </div>
       </header>
     )
@@ -63,20 +91,44 @@ export function Header() {
                 <Heart className="h-4 w-4" />
                 My Favorites
               </Link>
-              <Link href="/profile" className="flex items-center gap-2">
-                {profileImageUrl ? (
-                  <img
-                    src={profileImageUrl || "/placeholder.svg"}
-                    alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
-                    <User className="h-4 w-4" />
-                  </div>
-                )}
-                <span className="hidden md:inline">Profile</span>
-              </Link>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 p-2">
+                    {profileImageUrl ? (
+                      <img
+                        src={profileImageUrl || "/placeholder.svg"}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
+                        <User className="h-4 w-4" />
+                      </div>
+                    )}
+                    <span className="hidden md:inline">{user.email}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/favorites" className="flex items-center gap-2 md:hidden">
+                      <Heart className="h-4 w-4" />
+                      My Favorites
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-red-600">
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <div className="flex items-center gap-2">
