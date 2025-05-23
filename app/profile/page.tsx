@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, User, LogOut } from "lucide-react"
+import { ArrowLeft, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,10 +13,12 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
+import { ImageUpload } from "@/components/image-upload"
 
 export default function ProfilePage() {
   const { user, signOut, isLoading: authLoading } = useAuth()
   const [name, setName] = useState("")
+  const [profileImageUrl, setProfileImageUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
@@ -28,10 +30,17 @@ export default function ProfilePage() {
       // Load user profile data
       const fetchProfile = async () => {
         try {
-          const { data, error } = await supabase.from("profiles").select("name").eq("id", user.id).single()
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("name, profile_image_url")
+            .eq("id", user.id)
+            .single()
 
-          if (error) throw error
-          if (data) setName(data.name || "")
+          if (error && error.code !== "PGRST116") throw error
+          if (data) {
+            setName(data.name || "")
+            setProfileImageUrl(data.profile_image_url || "")
+          }
         } catch (error) {
           console.error("Error fetching profile:", error)
         }
@@ -48,9 +57,12 @@ export default function ProfilePage() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({ id: user.id, name, updated_at: new Date().toISOString() })
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        name,
+        profile_image_url: profileImageUrl,
+        updated_at: new Date().toISOString(),
+      })
 
       if (error) throw error
 
@@ -67,6 +79,10 @@ export default function ProfilePage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleImageUploaded = (url: string) => {
+    setProfileImageUrl(url)
   }
 
   const handleSignOut = async () => {
@@ -104,25 +120,32 @@ export default function ProfilePage() {
         <div className="max-w-md mx-auto">
           <Card>
             <CardHeader>
-              <div className="flex justify-center mb-4">
-                <div className="bg-sky-100 p-3 rounded-full">
-                  <User className="h-10 w-10 text-sky-600" />
-                </div>
-              </div>
               <CardTitle className="text-2xl text-center">Your Profile</CardTitle>
               <CardDescription className="text-center">Manage your account information</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={user?.email || ""} disabled />
-                  <p className="text-xs text-gray-500">Email cannot be changed</p>
+              <form onSubmit={handleUpdateProfile} className="space-y-6">
+                {/* Profile Image Upload */}
+                <div className="flex justify-center">
+                  <ImageUpload
+                    currentImageUrl={profileImageUrl}
+                    onImageUploaded={handleImageUploaded}
+                    userId={user?.id || ""}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={user?.email || ""} disabled />
+                    <p className="text-xs text-gray-500">Email cannot be changed</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+                  </div>
                 </div>
+
                 <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-700" disabled={isLoading}>
                   {isLoading ? "Updating..." : "Update Profile"}
                 </Button>
