@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { User, LogIn, Heart, Map } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
-import { supabase } from "@/lib/supabase"
+import { supabaseBrowser as supabase } from "@/lib/supabase-browser"
 
 export function Header() {
   const { user, isLoading } = useAuth()

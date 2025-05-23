@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/lib/supabase"
+import { supabaseBrowser as supabase } from "@/lib/supabase-browser"
 import { Header } from "@/components/header"
 import { bathingSpots } from "@/lib/data"
 
