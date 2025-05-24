@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { User, LogIn, Heart, Map, LogOut } from "lucide-react"
+import { User, LogIn, Heart, Map, LogOut, Menu } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { supabase } from "@/lib/supabase"
 import {
@@ -13,6 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 export function Header() {
   const { user, isLoading, signOut, refreshSession } = useAuth()
@@ -80,14 +85,72 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-4">
-          <Link href="/map" className="hidden md:flex items-center gap-2 hover:underline">
-            <Map className="h-4 w-4" />
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="p-2">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-64 bg-gradient-to-br from-orange-50 via-yellow-50 to-sky-100"
+              >
+                <div className="mt-6 flex flex-col gap-4 text-sky-900">
+                  <Link href="/map" className="flex items-center gap-2">
+                    <Map className="h-4 w-4" />
+                    Map
+                  </Link>
+                  {user ? (
+                    <>
+                      <Link href="/favorites" className="flex items-center gap-2">
+                        <Heart className="h-4 w-4" />
+                        My Favorites
+                      </Link>
+                      <Link href="/profile" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Profile
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2 justify-start text-red-600"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/favorites" className="flex items-center gap-2">
+                        <Heart className="h-4 w-4" />
+                        My Favorites
+                      </Link>
+                      <Link href="/auth/login" className="flex items-center gap-2">
+                        <LogIn className="h-4 w-4" />
+                        Login
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <Link
+            href="/map"
+            className="hidden md:flex items-center gap-2 text-white hover:text-yellow-200"
+          >
+            <Map className="h-5 w-5" />
             Map
           </Link>
 
           {user ? (
             <>
-              <Link href="/favorites" className="hidden md:flex items-center gap-2 hover:underline">
+              <Link
+                href="/favorites"
+                className="hidden md:flex items-center gap-2 text-white hover:text-yellow-200"
+              >
                 <Heart className="h-4 w-4" />
                 My Favorites
               </Link>
@@ -133,15 +196,15 @@ export function Header() {
           ) : (
             <div className="flex items-center gap-2">
               <Link href="/favorites">
-                <Button variant="ghost" className="bg-white text-sky-600 border-sky-600 hover:bg-sky-100">
-                  <Heart className="h-4 w-4 mr-2" />
-                  My Favorites
+                <Button variant="link" className="text-white hover:text-yellow-200">
+                  <Heart className="h-4 w-4" />
+                  <span className="sr-only md:inline">My Favorites</span>
                 </Button>
               </Link>
               <Link href="/auth/login">
-                <Button variant="ghost" className="bg-sky-600 text-white border-white hover:bg-sky-700">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Login
+                <Button variant="link" className="text-white hover:text-yellow-200">
+                  <LogIn className="h-4 w-4" />
+                  <span className="sr-only md:inline">Login</span>
                 </Button>
               </Link>
             </div>
