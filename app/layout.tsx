@@ -1,6 +1,7 @@
 import type React from "react"
 import { AuthProvider } from "@/context/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata = {
@@ -18,7 +19,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeProvider attribute="class" defaultTheme="light">
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

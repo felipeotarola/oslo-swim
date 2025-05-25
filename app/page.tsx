@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import BathingSpotsList from "@/components/bathing-spots-list"
+import AllBathingSpotsLis from "@/components/all-bathing-spots-list"
 import { Header } from "@/components/header"
 import { WeatherOverview } from "@/components/weather-overview"
 import { NorwegianSummerMagic } from "@/components/norwegian-summer-magic"
@@ -18,7 +18,7 @@ export default function Home() {
             <p className="text-sky-800 mb-6">Check real-time water temperatures at Oslo's most popular bathing spots</p>
             <div className="flex justify-center gap-4">
               <Button className="bg-sky-600 hover:bg-sky-700">
-                <Link href="/map">View Map</Link>
+                <Link href="/beaches">Explore Beaches</Link>
               </Button>
               <Button variant="outline" className="bg-white text-sky-600 border-sky-600 hover:bg-sky-100">
                 <Link href="/favorites">My Favorites</Link>
@@ -47,7 +47,7 @@ export default function Home() {
 
         <section>
           <h3 className="text-xl font-semibold text-sky-800 mb-6">Popular Bathing Spots</h3>
-          <BathingSpotsList />
+          <AllBathingSpotsLis />
         </section>
       </main>
 

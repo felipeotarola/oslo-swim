@@ -25,18 +25,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshSession = async () => {
     try {
+      setIsLoading(true)
       const {
         data: { session },
         error,
       } = await supabase.auth.getSession()
+
       if (error) {
         console.error("Error refreshing session:", error)
+        // Clear invalid session
         setSession(null)
         setUser(null)
-      } else {
-        setSession(session)
-        setUser(session?.user ?? null)
+        return
       }
+
+      setSession(session)
+      setUser(session?.user ?? null)
     } catch (error) {
       console.error("Error in refreshSession:", error)
       setSession(null)
@@ -56,11 +60,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session?.user?.email)
 
-      setSession(session)
-      setUser(session?.user ?? null)
-      setIsLoading(false)
+      // Handle different auth events
+      switch (event) {
+        case "SIGNED_IN":
+          setSession(session)
+          setUser(session?.user ?? null)
+          setIsLoading(false)
+          break
+        case "SIGNED_OUT":
+          setSession(null)
+          setUser(null)
+          setIsLoading(false)
+          break
+        case "TOKEN_REFRESHED":
+          setSession(session)
+          setUser(session?.user ?? null)
+          break
+        case "USER_UPDATED":
+          setSession(session)
+          setUser(session?.user ?? null)
+          break
+        default:
+          setSession(session)
+          setUser(session?.user ?? null)
+          setIsLoading(false)
+      }
 
-      // Force router refresh on auth changes
+      // Force router refresh on significant auth changes
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
         router.refresh()
       }
@@ -74,13 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const { error } = await supabase.auth.signUp({
-        email,
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
         password,
       })
-      if (error) throw error
-      router.push("/auth/verify")
-    } catch (error) {
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      // Don't automatically redirect - let the component handle it
+      console.log("Sign up successful:", data.user?.email)
+    } catch (error: any) {
       console.error("Error signing up:", error)
       throw error
     } finally {
@@ -91,22 +123,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true)
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       })
-      if (error) throw error
 
-      // Wait for the session to be set
-      if (data.session) {
-        setSession(data.session)
-        setUser(data.session.user)
+      if (error) {
+        throw new Error(error.message)
       }
 
-      // Force a refresh and redirect
-      router.refresh()
-      router.push("/")
-    } catch (error) {
+      // Session will be set by the auth state change listener
+      console.log("Sign in successful:", data.user?.email)
+    } catch (error: any) {
       console.error("Error signing in:", error)
       throw error
     } finally {
@@ -117,18 +146,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       setIsLoading(true)
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
 
-      // Clear local state immediately
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      // Clear state immediately
       setSession(null)
       setUser(null)
 
-      // Force refresh and redirect
-      router.refresh()
-      router.push("/")
-    } catch (error) {
+      console.log("Sign out successful")
+    } catch (error: any) {
       console.error("Error signing out:", error)
+      // Even if there's an error, clear the local state
+      setSession(null)
+      setUser(null)
       throw error
     } finally {
       setIsLoading(false)

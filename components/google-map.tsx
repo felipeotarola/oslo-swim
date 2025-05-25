@@ -12,6 +12,7 @@ interface GoogleMapProps {
     info?: string
   }>
   className?: string
+  onClick?: (coordinates: { lat: number; lng: number }) => void
 }
 
 declare global {
@@ -20,7 +21,7 @@ declare global {
   }
 }
 
-export function GoogleMap({ center, zoom = 13, markers = [], className = "" }: GoogleMapProps) {
+export function GoogleMap({ center, zoom = 13, markers = [], className = "", onClick }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
@@ -69,6 +70,15 @@ export function GoogleMap({ center, zoom = 13, markers = [], className = "" }: G
 
   useEffect(() => {
     if (map && isLoaded && window.google) {
+      // Add click listener to map
+      if (onClick) {
+        map.addListener("click", (event: any) => {
+          const lat = event.latLng.lat()
+          const lng = event.latLng.lng()
+          onClick({ lat, lng })
+        })
+      }
+
       // Clear existing markers by creating new ones (simple approach)
       markers.forEach((marker) => {
         const mapMarker = new window.google.maps.Marker({
@@ -100,7 +110,7 @@ export function GoogleMap({ center, zoom = 13, markers = [], className = "" }: G
         }
       })
     }
-  }, [map, markers, isLoaded])
+  }, [map, markers, isLoaded, onClick])
 
   if (error) {
     return (

@@ -11,51 +11,107 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Menu, User, LogIn, Heart, Map, LogOut, Home, Waves, Settings, Info } from "lucide-react"
+import { Menu, User, LogIn, Heart, Map, LogOut, Home, Waves, Settings, Plus, MapPin, Loader2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 const navigationItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/map", label: "Map", icon: Map },
+  { href: "/beaches", label: "Beaches", icon: Map },
+  { href: "/add-spot", label: "Add Spot", icon: Plus, authRequired: true },
+  { href: "/my-spots", label: "My Spots", icon: MapPin, authRequired: true },
   { href: "/favorites", label: "My Favorites", icon: Heart, authRequired: true },
-  { href: "/about", label: "About", icon: Info },
 ]
 
 export function Header() {
   const { user, isLoading, signOut } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
   const [profileImageUrl, setProfileImageUrl] = useState<string>("")
   const [isOpen, setIsOpen] = useState(false)
+  const [profileImageLoading, setProfileImageLoading] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
-    if (user) {
+    if (user && !profileImageLoading) {
       const fetchProfileImage = async () => {
         try {
+          setProfileImageLoading(true)
+
           const { data, error } = await supabase.from("profiles").select("profile_image_url").eq("id", user.id).single()
 
-          if (error && error.code !== "PGRST116") throw error
+          if (error) {
+            // Handle specific error cases
+            if (error.code === "PGRST116") {
+              // No profile found - this is normal for new users
+              console.log("No profile found for user, this is normal for new users")
+              return
+            }
+
+            // Log other errors but don't crash the app
+            console.warn("Error fetching profile image:", error.message)
+            return
+          }
+
           if (data?.profile_image_url) {
             setProfileImageUrl(data.profile_image_url)
           }
-        } catch (error) {
-          console.error("Error fetching profile image:", error)
+        } catch (error: any) {
+          // Handle network errors, rate limits, etc.
+          console.warn("Failed to fetch profile image:", error.message || error)
+
+          // If it's a rate limit or network error, we can silently fail
+          // The user will just see the default avatar
+        } finally {
+          setProfileImageLoading(false)
         }
       }
 
       fetchProfileImage()
-    } else {
+    } else if (!user) {
       setProfileImageUrl("")
+      setProfileImageLoading(false)
     }
-  }, [user])
+  }, [user, profileImageLoading])
 
   const handleSignOut = async () => {
+    if (isSigningOut) return // Prevent double-clicking
+
     try {
+      setIsSigningOut(true)
+      setIsOpen(false) // Close mobile menu immediately
+
       await signOut()
-      setIsOpen(false)
-    } catch (error) {
+
+      // Clear profile image on sign out
+      setProfileImageUrl("")
+
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      })
+
+      // Redirect to home page
+      router.push("/")
+    } catch (error: any) {
       console.error("Error signing out:", error)
+
+      // Even if there's an error, we should still clear the UI state
+      setProfileImageUrl("")
+
+      toast({
+        title: "Sign out error",
+        description: "There was an issue signing out, but you have been logged out locally.",
+        variant: "destructive",
+      })
+
+      // Force redirect to home even on error
+      router.push("/")
+    } finally {
+      setIsSigningOut(false)
     }
   }
 
@@ -63,6 +119,8 @@ export function Header() {
 
   const isActivePath = (href: string) => {
     if (href === "/") return pathname === "/"
+    // Handle both /map and /beaches for backward compatibility
+    if (href === "/beaches") return pathname === "/beaches" || pathname === "/map"
     return pathname.startsWith(href)
   }
 
@@ -76,7 +134,10 @@ export function Header() {
             <Waves className="h-6 w-6 text-sky-600" />
             <span className="text-lg font-bold text-sky-600">Oslo Bathing Spots</span>
           </div>
-          <div className="animate-pulse text-sm text-gray-500">Loading...</div>
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
+            <span className="text-sm text-gray-500">Loading...</span>
+          </div>
         </div>
       </header>
     )
@@ -115,12 +176,16 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2 h-10">
-                  {profileImageUrl ? (
+                <Button variant="ghost" className="flex items-center gap-2 h-10" disabled={isSigningOut}>
+                  {profileImageUrl && !profileImageLoading ? (
                     <img
                       src={profileImageUrl || "/placeholder.svg"}
                       alt="Profile"
                       className="w-8 h-8 rounded-full object-cover border-2 border-sky-200"
+                      onError={() => {
+                        // If image fails to load, clear it and show default avatar
+                        setProfileImageUrl("")
+                      }}
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
@@ -146,10 +211,11 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
+                  disabled={isSigningOut}
                   className="flex items-center gap-2 text-red-600 focus:text-red-600"
                 >
-                  <LogOut className="h-4 w-4" />
-                  Sign Out
+                  {isSigningOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  {isSigningOut ? "Signing out..." : "Sign Out"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -169,7 +235,7 @@ export function Header() {
         <div className="md:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-2">
+              <Button variant="ghost" size="sm" className="p-2" disabled={isSigningOut}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
@@ -188,11 +254,15 @@ export function Header() {
                 {user && (
                   <div className="py-4 border-b">
                     <div className="flex items-center gap-3">
-                      {profileImageUrl ? (
+                      {profileImageUrl && !profileImageLoading ? (
                         <img
                           src={profileImageUrl || "/placeholder.svg"}
                           alt="Profile"
                           className="w-10 h-10 rounded-full object-cover border-2 border-sky-200"
+                          onError={() => {
+                            // If image fails to load, clear it and show default avatar
+                            setProfileImageUrl("")
+                          }}
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
@@ -266,10 +336,11 @@ export function Header() {
                     <Button
                       variant="ghost"
                       onClick={handleSignOut}
+                      disabled={isSigningOut}
                       className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <LogOut className="h-5 w-5" />
-                      Sign Out
+                      {isSigningOut ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogOut className="h-5 w-5" />}
+                      {isSigningOut ? "Signing out..." : "Sign Out"}
                     </Button>
                   ) : (
                     <div className="space-y-2">

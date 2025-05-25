@@ -17,8 +17,13 @@ export async function middleware(req: NextRequest) {
       console.error("Middleware auth error:", error)
     }
 
+    // Handle redirect from /map to /beaches
+    if (req.nextUrl.pathname === "/map") {
+      return NextResponse.redirect(new URL("/beaches", req.url))
+    }
+
     // Protected routes
-    const protectedRoutes = ["/profile", "/favorites"]
+    const protectedRoutes = ["/profile", "/favorites", "/add-spot", "/my-spots"]
     const isProtectedRoute = protectedRoutes.some((route) => req.nextUrl.pathname.startsWith(route))
 
     // Auth routes

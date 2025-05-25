@@ -1,36 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Header } from "@/components/header"
 import { GoogleMap } from "@/components/google-map"
-import { bathingSpots } from "@/lib/data"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { getAllSpots, type UnifiedSpot } from "@/lib/spots-service"
 
 export default function MapPage() {
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null)
+  const [allSpots, setAllSpots] = useState<UnifiedSpot[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSpots = async () => {
+      try {
+        const spots = await getAllSpots()
+        setAllSpots(spots)
+      } catch (error) {
+        console.error("Error fetching spots:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchSpots()
+  }, [])
 
   // Oslo center coordinates
   const osloCenter = { lat: 59.9139, lng: 10.7522 }
 
   // Create markers for all bathing spots
-  const markers = bathingSpots.map((spot) => ({
+  const markers = allSpots.map((spot) => ({
     position: { lat: spot.coordinates.lat, lng: spot.coordinates.lon },
     title: spot.name,
     info: `
-      <div style="padding: 8px; max-width: 200px;">
-        <h3 style="margin: 0 0 8px 0; font-weight: bold; color: #0c4a6e;">${spot.name}</h3>
-        <p style="margin: 0 0 4px 0; font-size: 12px; color: #0369a1;">${spot.location}</p>
-        <p style="margin: 0 0 8px 0; font-size: 12px;">Water: ${spot.waterTemperature}°C</p>
-        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
-          <span style="background: ${spot.partyLevel === "Party-Friendly" ? "#10b981" : spot.partyLevel === "Chill" ? "#f59e0b" : "#3b82f6"}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">${spot.partyLevel}</span>
-          ${spot.byobFriendly ? '<span style="background: #f97316; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">BYOB</span>' : ""}
-        </div>
-        <a href="/spot/${spot.id}" style="color: #0ea5e9; text-decoration: none; font-size: 12px;">View Details →</a>
+    <div style="padding: 8px; max-width: 200px;">
+      <h3 style="margin: 0 0 8px 0; font-weight: bold; color: #0c4a6e;">${spot.name}</h3>
+      ${spot.isCommunitySpot ? '<span style="background: #9333ea; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">Community</span>' : ""}
+      <p style="margin: 0 0 4px 0; font-size: 12px; color: #0369a1;">${spot.location}</p>
+      <p style="margin: 0 0 8px 0; font-size: 12px;">Water: ${spot.waterTemperature}°C</p>
+      <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+        <span style="background: ${spot.partyLevel === "Party-Friendly" ? "#10b981" : spot.partyLevel === "Chill" ? "#f59e0b" : "#3b82f6"}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">${spot.partyLevel}</span>
+        ${spot.byobFriendly ? '<span style="background: #f97316; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">BYOB</span>' : ""}
       </div>
-    `,
+      <a href="${spot.isCommunitySpot ? `/community-spot/${spot.communitySpotId}` : `/spot/${spot.id}`}" style="color: #0ea5e9; text-decoration: none; font-size: 12px;">View Details →</a>
+    </div>
+  `,
   }))
 
   return (
@@ -58,7 +75,7 @@ export default function MapPage() {
           {/* Spot List */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-sky-800">Bathing Spots</h2>
-            {bathingSpots.map((spot) => (
+            {allSpots.map((spot) => (
               <Card
                 key={spot.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
@@ -67,7 +84,10 @@ export default function MapPage() {
                 onClick={() => setSelectedSpot(selectedSpot === spot.id ? null : spot.id)}
               >
                 <CardContent className="p-4">
-                  <h3 className="font-medium text-sky-900 mb-1">{spot.name}</h3>
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-medium text-sky-900">{spot.name}</h3>
+                    {spot.isCommunitySpot && <Badge className="bg-purple-600 text-xs">Community</Badge>}
+                  </div>
                   <p className="text-sm text-sky-600 mb-2">{spot.location}</p>
 
                   <div className="flex flex-wrap gap-1 mb-2">
@@ -89,7 +109,7 @@ export default function MapPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-sky-700">Water: {spot.waterTemperature}°C</span>
                     <Link
-                      href={`/spot/${spot.id}`}
+                      href={spot.isCommunitySpot ? `/community-spot/${spot.communitySpotId}` : `/spot/${spot.id}`}
                       className="text-sky-600 hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
