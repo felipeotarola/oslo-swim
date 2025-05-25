@@ -11,11 +11,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Menu, User, LogIn, Heart, Map, LogOut, Home, Waves, Settings, Plus, MapPin, Loader2 } from "lucide-react"
+import {
+  Menu,
+  User,
+  LogIn,
+  Heart,
+  Map,
+  LogOut,
+  Home,
+  Waves,
+  Settings,
+  Plus,
+  MapPin,
+  Loader2,
+  Shield,
+} from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
 import { usePathname, useRouter } from "next/navigation"
+import { isUserAdmin } from "@/lib/admin-service"
 
 const navigationItems = [
   { href: "/", label: "Home", icon: Home },
@@ -34,6 +49,20 @@ export function Header() {
   const [profileImageLoading, setProfileImageLoading] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        const adminStatus = await isUserAdmin(user.id)
+        setIsAdmin(adminStatus)
+      } else {
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [user])
 
   useEffect(() => {
     if (user && !profileImageLoading) {
@@ -169,6 +198,17 @@ export function Header() {
               </Link>
             )
           })}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-sky-600 ${
+                isActivePath("/admin") ? "text-sky-600" : "text-gray-600"
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Desktop User Menu */}
@@ -298,6 +338,20 @@ export function Header() {
                         </Link>
                       )
                     })}
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={closeSheet}
+                        className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                          isActivePath("/admin")
+                            ? "bg-sky-50 text-sky-600 border border-sky-200"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        }`}
+                      >
+                        <Shield className="h-5 w-5" />
+                        Admin
+                      </Link>
+                    )}
 
                     {user && (
                       <>

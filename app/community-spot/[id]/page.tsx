@@ -33,7 +33,7 @@ import { SunsetTimer } from "@/components/sunset-timer"
 import { Directions } from "@/components/directions"
 import { NearbyPlaces } from "@/components/nearby-places"
 import { GoogleMap } from "@/components/google-map"
-import { getCommunitySpotById, type CommunitySpot } from "@/lib/spots-service"
+import { getCommunitySpotById, type CommunitySpot } from "@/lib/unified-spots-service"
 import { fetchCurrentWeather } from "@/lib/weather-service"
 
 export default function CommunitySpotDetail({ params }: { params: { id: string } }) {
@@ -66,7 +66,7 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
         } catch (error) {
           console.error("Error fetching weather:", error)
           setCurrentWeather({
-            temp: spotData.waterTemperature || 18,
+            temp: spotData.water_temperature || 18,
             description: "sunny",
           })
         }
@@ -139,7 +139,7 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
           user_id: user.id,
           spot_id: `community-${spot.id}`,
           spot_name: spot.title,
-          water_temperature: spot.waterTemperature || 18,
+          water_temperature: spot.water_temperature || 18,
           created_at: new Date().toISOString(),
         })
 
@@ -250,7 +250,7 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
               </div>
               {canEdit && (
                 <Button asChild variant="outline" className="border-sky-600 text-sky-600 hover:bg-sky-100">
-                  <Link href={`/edit-spot/${spot.id}`}>
+                  <Link href={`/edit-spot/community-${spot.id}`}>
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Spot
                   </Link>
@@ -260,14 +260,14 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
 
             {/* Party Level and BYOB Info */}
             <div className="flex flex-wrap gap-3 mb-6">
-              {spot.partyLevel && <PartyLevel level={spot.partyLevel} />}
-              {spot.byobFriendly && (
+              {spot.party_level && <PartyLevel level={spot.party_level} />}
+              {spot.byob_friendly && (
                 <Badge className="bg-orange-500 flex items-center gap-1">
                   <Beer className="h-3 w-3" />
                   BYOB Friendly
                 </Badge>
               )}
-              {spot.sunsetViews && (
+              {spot.sunset_views && (
                 <Badge className="bg-pink-500 flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   Sunset Views
@@ -334,23 +334,23 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
                 <h2 className="text-xl font-semibold text-sky-800 mb-4">Spot Information</h2>
 
                 <div className="space-y-4">
-                  {spot.waterTemperature && (
+                  {spot.water_temperature && (
                     <div className="flex justify-between items-center p-3 bg-sky-50 rounded-lg">
                       <div className="flex items-center">
                         <ThermometerIcon className="h-5 w-5 text-sky-700 mr-2" />
                         <span className="text-sky-800">Water Temperature</span>
                       </div>
-                      <span className="text-xl font-bold text-sky-900">{spot.waterTemperature}°C</span>
+                      <span className="text-xl font-bold text-sky-900">{spot.water_temperature}°C</span>
                     </div>
                   )}
 
-                  {spot.waterQuality && (
+                  {spot.water_quality && (
                     <div className="flex justify-between items-center p-3 bg-sky-50 rounded-lg">
                       <div className="flex items-center">
                         <Droplets className="h-5 w-5 text-sky-700 mr-2" />
                         <span className="text-sky-800">Water Quality</span>
                       </div>
-                      <span className="font-medium text-sky-900">{spot.waterQuality}</span>
+                      <span className="font-medium text-sky-900">{spot.water_quality}</span>
                     </div>
                   )}
 
@@ -362,13 +362,13 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
                     <span className="text-sm text-sky-900">{new Date(spot.created_at).toLocaleDateString()}</span>
                   </div>
 
-                  {spot.crowdLevel && (
+                  {spot.crowd_level && (
                     <div className="flex justify-between items-center p-3 bg-sky-50 rounded-lg">
                       <div className="flex items-center">
                         <Users className="h-5 w-5 text-sky-700 mr-2" />
                         <span className="text-sky-800">Crowd Level</span>
                       </div>
-                      <span className="font-medium text-sky-900">{spot.crowdLevel}</span>
+                      <span className="font-medium text-sky-900">{spot.crowd_level}</span>
                     </div>
                   )}
                 </div>
@@ -380,14 +380,14 @@ export default function CommunitySpotDetail({ params }: { params: { id: string }
               destinationName={spot.title}
             />
 
-            {spot.sunsetViews && (
-              <SunsetTimer lat={spot.coordinates.lat} lon={spot.coordinates.lng} showSunset={spot.sunsetViews} />
+            {spot.sunset_views && (
+              <SunsetTimer lat={spot.coordinates.lat} lon={spot.coordinates.lng} showSunset={spot.sunset_views} />
             )}
 
             <WeatherDisplay lat={spot.coordinates.lat} lon={spot.coordinates.lng} spotName={spot.title} />
 
             <BeachVibes
-              temperature={currentWeather?.temp || spot.waterTemperature || 18}
+              temperature={currentWeather?.temp || spot.water_temperature || 18}
               weather={currentWeather?.description || "sunny"}
               spotName={spot.title}
             />

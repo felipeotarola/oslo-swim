@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Droplets, MapPin, ThermometerIcon, Beer, Sparkles, Star } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getAllSpots, type UnifiedSpot } from "@/lib/spots-service"
+import { getAllSpots, type UnifiedSpot } from "@/lib/unified-spots-service"
 import { WeatherWidget } from "@/components/weather-widget"
 import { PartyLevel } from "@/components/party-level"
 
@@ -37,7 +37,7 @@ export default function AllBathingSpotsLis() {
       const partyOrder = { "Party-Friendly": 3, Chill: 2, Quiet: 1 }
       return partyOrder[b.partyLevel] - partyOrder[a.partyLevel]
     } else if (sortBy === "newest") {
-      // Community spots first (newest), then regular spots
+      // Community spots first (newest), then featured spots
       if (a.isCommunitySpot && !b.isCommunitySpot) return -1
       if (!a.isCommunitySpot && b.isCommunitySpot) return 1
       return 0
@@ -74,8 +74,8 @@ export default function AllBathingSpotsLis() {
         <div>
           <h3 className="text-xl font-semibold text-sky-800">All Bathing Spots</h3>
           <p className="text-sm text-sky-600">
-            {spots.filter((s) => s.isCommunitySpot).length} community spots •{" "}
-            {spots.filter((s) => !s.isCommunitySpot).length} featured spots
+            {spots.filter((s) => s.isFeaturedSpot).length} featured spots •{" "}
+            {spots.filter((s) => s.isCommunitySpot).length} community spots
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-sky-700">
@@ -123,11 +123,17 @@ export default function AllBathingSpotsLis() {
                   <Badge className="absolute top-3 right-3 bg-blue-500">Cool</Badge>
                 )}
 
-                {/* Community Badge */}
+                {/* Spot Type Badge */}
                 {spot.isCommunitySpot && (
                   <Badge className="absolute top-3 left-3 bg-purple-600 flex items-center gap-1">
                     <Star className="h-2 w-2" />
                     Community
+                  </Badge>
+                )}
+                {spot.isFeaturedSpot && (
+                  <Badge className="absolute top-3 left-3 bg-blue-600 flex items-center gap-1">
+                    <Sparkles className="h-2 w-2" />
+                    Featured
                   </Badge>
                 )}
 

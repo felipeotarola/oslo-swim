@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Plus, Clock, CheckCircle, XCircle, Eye, Loader2 } from "lucide-react"
+import { ArrowLeft, Plus, Clock, CheckCircle, XCircle, Eye, Loader2, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -207,6 +207,14 @@ export default function MySpotsPage() {
                       </Link>
                     </Button>
                   )}
+
+                  {/* Edit button for all spots */}
+                  <Button asChild className="w-full bg-orange-600 hover:bg-orange-700 mt-2" size="sm">
+                    <Link href={`/edit-spot/community-${spot.id}`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Spot
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}

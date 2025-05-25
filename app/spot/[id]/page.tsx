@@ -15,8 +15,8 @@ import {
   Users,
   Beer,
   Sparkles,
+  Edit,
 } from "lucide-react"
-import { bathingSpots } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -32,16 +32,50 @@ import { SunsetTimer } from "@/components/sunset-timer"
 import { Directions } from "@/components/directions"
 import { NearbyPlaces } from "@/components/nearby-places"
 import { GoogleMap } from "@/components/google-map"
+import { getSpotById, type UnifiedSpot } from "@/lib/unified-spots-service"
 import { fetchCurrentWeather } from "@/lib/weather-service"
 
 export default function SpotDetail({ params }: { params: { id: string } }) {
-  const spot = bathingSpots.find((s) => s.id === params.id)
   const { user } = useAuth()
+  const [spot, setSpot] = useState<UnifiedSpot | null>(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingFavorite, setIsCheckingFavorite] = useState(false)
   const [currentWeather, setCurrentWeather] = useState<{ temp: number; description: string } | null>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchSpot = async () => {
+      try {
+        const spotData = await getSpotById(params.id)
+        if (!spotData) {
+          notFound()
+          return
+        }
+        setSpot(spotData)
+
+        // Get weather data
+        try {
+          const weatherData = await fetchCurrentWeather(spotData.coordinates.lat, spotData.coordinates.lon)
+          setCurrentWeather({
+            temp: weatherData.main.temp,
+            description: weatherData.weather[0].description,
+          })
+        } catch (error) {
+          console.error("Error fetching weather:", error)
+          setCurrentWeather({
+            temp: spotData.waterTemperature,
+            description: "sunny",
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching spot:", error)
+        notFound()
+      }
+    }
+
+    fetchSpot()
+  }, [params.id])
 
   useEffect(() => {
     if (user && spot) {
@@ -71,30 +105,19 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
     }
   }, [user, spot])
 
-  useEffect(() => {
-    if (spot) {
-      const getWeather = async () => {
-        try {
-          const weatherData = await fetchCurrentWeather(spot.coordinates.lat, spot.coordinates.lon)
-          setCurrentWeather({
-            temp: weatherData.main.temp,
-            description: weatherData.weather[0].description,
-          })
-        } catch (error) {
-          console.error("Error fetching weather:", error)
-          setCurrentWeather({
-            temp: spot.waterTemperature,
-            description: "sunny",
-          })
-        }
-      }
-
-      getWeather()
-    }
-  }, [spot])
-
   if (!spot) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-sky-50 to-blue-100">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </main>
+      </div>
+    )
   }
 
   const toggleFavorite = async () => {
@@ -199,6 +222,12 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
           <div className="lg:col-span-2">
             <div className="relative h-64 md:h-96 rounded-lg overflow-hidden mb-6">
               <Image src={spot.imageUrl || "/placeholder.svg"} alt={spot.name} fill className="object-cover" />
+              {spot.isFeaturedSpot && (
+                <Badge className="absolute top-4 left-4 bg-blue-600 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Featured Spot
+                </Badge>
+              )}
             </div>
 
             <h1 className="text-2xl md:text-3xl font-bold text-sky-900 mb-2">{spot.name}</h1>
@@ -353,6 +382,15 @@ export default function SpotDetail({ params }: { params: { id: string } }) {
                 <Share className="h-5 w-5 mr-2" />
                 Share
               </Button>
+              {/* Edit button - only show for community spots owned by user or featured spots for admins */}
+              {((spot.isCommunitySpot && spot.submittedBy === user?.id) || spot.isFeaturedSpot) && (
+                <Button asChild variant="outline" className="w-full border-sky-600 text-sky-600 hover:bg-sky-100">
+                  <Link href={`/edit-spot/${spot.id}`}>
+                    <Edit className="h-5 w-5 mr-2" />
+                    Edit Spot
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         </div>
